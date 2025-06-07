@@ -132,8 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayResult(text) {
-        resultText.textContent = text.trim();
-        resultContainer.classList.remove('hidden');
+        // --- NEW CODE ---
+        // 1. Save the transcript to localStorage so the next page can access it.
+        localStorage.setItem('transcriptForLLM', text.trim());
+    
+        // 2. Redirect the user to the new analysis page.
+        window.location.href = '/llm';
     }
 
     function showError(message) {
