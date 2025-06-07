@@ -1,111 +1,120 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+# app/main.py
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import logging
+from typing import List
 
-from . import services, schemas
+# 引用 database 和 schemas
+from . import services, schemas, database
 
-# 設定日誌
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 初始化 FastAPI 應用
 app = FastAPI(
     title="Gemini AI 音訊分析工具",
     description="一個使用 FastAPI 和 Google Gemini 1.5 Flash 模型的音訊分析 API",
-    version="1.0.0"
+    version="2.0.0"
 )
 
-# 取得根目錄路徑
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# 掛載 static 資料夾以提供前端檔案
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+@app.on_event("startup")
+def on_startup():
+    """應用程式啟動時，初始化資料庫"""
+    database.init_db()
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_root():
-    """
-    提供前端主頁面 (index.html)
-    """
-    try:
-        with open(BASE_DIR / "static/index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        logger.error("index.html not found.")
-        raise HTTPException(status_code=404, detail="index.html not found")
+    # ... (此部分不變) ...
+    with open(BASE_DIR / "static" / "index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
+# --- 修改分析 API ---
 @app.post("/api/analyze-audio", response_model=schemas.AnalysisResponse)
 async def analyze_audio(file: UploadFile = File(...)):
     """
-    分析上傳的音訊檔案。
-    接收一個 MP3 檔案，並返回 Gemini API 的分析結果。
+    分析上傳的音訊檔案，並將結果存入資料庫。
     """
     if not file.content_type.startswith("audio/"):
-        logger.warning(f"Invalid file type uploaded: {file.content_type}")
         raise HTTPException(status_code=400, detail="不支援的檔案類型，請上傳音訊檔。")
-
     try:
-        logger.info(f"Received file for analysis: {file.filename}")
+        title = file.filename or "Uploaded Audio"
         contents = await file.read()
         result_text = await services.analyze_audio_file(contents, file.content_type)
-        logger.info("Successfully analyzed audio file.")
-        return schemas.AnalysisResponse(transcript=result_text)
+        
+        # 存入資料庫
+        transcript_id = database.add_transcript(title=title, content=result_text)
+        
+        return schemas.AnalysisResponse(transcript=result_text, transcript_id=transcript_id)
     except Exception as e:
-        logger.exception("An error occurred during audio analysis.")
         raise HTTPException(status_code=500, detail=f"分析過程中發生錯誤: {str(e)}")
 
 @app.post("/api/download-from-youtube", response_model=schemas.AnalysisResponse)
 async def download_and_analyze(data: schemas.YouTubeRequest):
     """
-    從 YouTube 下載音訊並進行分析。
-    接收一個 YouTube URL，下載音訊後交由 Gemini API 分析。
+    從 YouTube 下載音訊，分析後將結果存入資料庫。
     """
-    audio_path = None # Initialize audio_path to None
+    audio_path = None
     try:
-        logger.info(f"Received YouTube URL for analysis: {data.url}")
         audio_path = await services.download_youtube_audio(data.url)
         with open(audio_path, "rb") as f:
             contents = f.read()
         
-        # 假設 yt-dlp 下載的是 mp3 或 m4a，MIME type 需要對應
-        # Gemini 1.5 支援多種格式，這裡用 "audio/mpeg" 是一個常見選項
         result_text = await services.analyze_audio_file(contents, "audio/mpeg")
-        logger.info("Successfully analyzed YouTube audio.")
-        return schemas.AnalysisResponse(transcript=result_text)
-    except ValueError as ve: # 捕捉無效 URL 的錯誤
-        logger.error(f"Invalid YouTube URL provided: {data.url}. Error: {ve}")
-        raise HTTPException(status_code=400, detail=str(ve))
+        
+        # 存入資料庫
+        title = data.title or f"YouTube Video: {data.url}"
+        transcript_id = database.add_transcript(title=title, content=result_text)
+        
+        return schemas.AnalysisResponse(transcript=result_text, transcript_id=transcript_id)
     except Exception as e:
-        logger.exception("An error occurred during YouTube processing.")
         raise HTTPException(status_code=500, detail=f"處理 YouTube 音訊時發生錯誤: {str(e)}")
     finally:
-        if audio_path: # Check if audio_path is not None before cleanup
-            services.cleanup_file(audio_path) # 刪除暫存檔案
+        if audio_path and Path(audio_path).exists():
+            services.cleanup_file(audio_path)
 
-# --- Add the following new endpoints at the end of the file, before the final "if" block if you have one ---
+# --- 新增 API 來獲取列表 ---
+@app.get("/api/transcripts", response_model=List[schemas.TranscriptInfo])
+async def get_transcripts_list():
+    """獲取所有會議紀錄的列表（ID、標題、時間）"""
+    return database.get_all_transcripts()
+
 
 @app.get("/llm", response_class=HTMLResponse, include_in_schema=False)
 async def read_llm_page():
+    # ... (此部分不變) ...
+    with open(BASE_DIR / "static" / "llm.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+# --- ▼▼▼ 在此處加入新的刪除 API 端點 ▼▼▼ ---
+@app.delete("/api/transcripts/{transcript_id}", status_code=200)
+async def delete_transcript(transcript_id: int):
     """
-    Provides the LLM chat analysis page (llm.html)
+    根據提供的 ID 刪除一筆會議紀錄
     """
     try:
-        with open(BASE_DIR / "static/llm.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        logger.error("llm.html not found.")
-        raise HTTPException(status_code=404, detail="llm.html not found")
+        success = database.delete_transcript_by_id(transcript_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Transcript not found")
+        return {"message": "Transcript deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting transcript {transcript_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+# --- ▲▲▲ 新的 API 端點結束 ▲▲▲ ---
+
+# --- 修改聊天 API ---
 @app.post("/api/chat", response_model=schemas.ChatResponse)
 async def chat_with_transcript(data: schemas.ChatRequest):
     """
-    Handles chat requests about a transcript.
+    根據使用者選擇的一或多份逐字稿內容進行聊天。
     """
     try:
-        logger.info(f"Received chat question: {data.question}")
-        answer = await services.get_chat_response(data.transcript, data.question)
+        answer = await services.get_chat_response(data.transcripts, data.question)
         return schemas.ChatResponse(answer=answer)
     except Exception as e:
-        logger.exception("An error occurred during chat processing.")
         raise HTTPException(status_code=500, detail=str(e))

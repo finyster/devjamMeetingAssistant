@@ -1,21 +1,26 @@
+# app/schemas.py (請使用此版本)
 from pydantic import BaseModel, HttpUrl
+from datetime import datetime
+from typing import List
 
 class AnalysisResponse(BaseModel):
-    """
-    API 分析結果的回應模型。
-    """
     transcript: str
+    transcript_id: int
 
 class YouTubeRequest(BaseModel):
-    """
-    從 YouTube 下載的請求模型。
-    """
-    url: HttpUrl # Pydantic 會自動驗證這是否為有效的 URL
-
+    url: HttpUrl
+    title: str
 
 class ChatRequest(BaseModel):
-    transcript: str
+    transcripts: List[str]
     question: str
 
 class ChatResponse(BaseModel):
     answer: str
+
+class TranscriptInfo(BaseModel):
+    """確保這個模型包含 content 欄位"""
+    id: int
+    title: str
+    content: str  # <--- 確認這一行存在
+    created_at: datetime

@@ -29,6 +29,8 @@ GENERATION_CONFIG = {
     "response_mime_type": "text/plain",
 }
 
+# In app/services.py
+
 SYSTEM_PROMPT = """你是一位專業的逐字稿分析師。你的任務是處理一段可能包含多位說話者的音訊。
 請你遵循以下指示：
 1.  將音訊內容完整轉換為**繁體中文**逐字稿。
@@ -117,48 +119,50 @@ def cleanup_file(file_path: Path):
 
 
 # --- Add the following new prompt and function at the end of the file ---
+# --- 用下面的版本替換 CHAT_PROMPT ---
+# --- 使用這個版本的 CHAT_PROMPT ---
+CHAT_PROMPT = """You are 'Audio Analyzer', a helpful AI assistant. You are having a conversation with a user about one or more meeting transcripts they have provided.
 
-CHAT_PROMPT = """You are 'Audio Analyzer', a helpful AI assistant. You are having a conversation with a user about a meeting transcript they have provided.
-
-Your primary goal is to answer the user's questions based *only* on the provided transcript.
+Your primary goal is to answer the user's questions based *only* on the provided transcript(s).
+- If multiple transcripts are provided, you can compare them or synthesize information from them if the user asks.
 - Be conversational and direct.
-- If the user asks for a summary, provide a bulleted list of key points.
-- If the user asks to identify tasks or action items, list them clearly, mentioning the assignee if possible.
-- If the information to answer the question is not in the transcript, clearly state that the information is not available in the provided text.
-- Format your response using Markdown (e.g., for lists or bold text).
+- If the user asks for a summary, provide a bulleted list of key points for each transcript, clearly labeling which summary belongs to which transcript.
+- If the information to answer the question is not in the transcript(s), clearly state that.
+- Format your response using Markdown.
 - Respond in **繁體中文**.
 
-**Full Transcript Context:**
+**Provided Transcript(s) Context:**
 ---
-{transcript}
+{transcripts_context}
 ---
 
 **User's Question:**
 "{question}"
 """
 
-# 找到 get_chat_response 函式
-async def get_chat_response(transcript: str, question: str) -> str:
+# --- 使用這個版本的 get_chat_response ---
+async def get_chat_response(transcripts: list[str], question: str) -> str:
     """
-    Uses Gemini to generate a conversational response about a transcript.
+    Uses Gemini to generate a conversational response about one or more transcripts.
     """
     try:
+        # 將多份逐字稿合併成一個上下文
+        transcripts_context = "\n\n---\n\n".join(transcripts)
+
         logger.info("Initializing Gemini model for chat.")
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash-latest",
         )
-        prompt = CHAT_PROMPT.format(transcript=transcript, question=question)
+        # 確保 CHAT_PROMPT 的 .format() 方法正確無誤
+        prompt = CHAT_PROMPT.format(transcripts_context=transcripts_context, question=question)
 
         logger.info("Sending chat request to Gemini API.")
         response = await model.generate_content_async(prompt)
 
-        # Convert the Markdown response from the LLM into HTML for better browser rendering
-        # 現在因為已經 import，這行程式碼可以正常運作了
         html_response = markdown.markdown(response.text.strip(), extensions=['fenced_code', 'tables'])
-
         return html_response
 
     except Exception as e:
         logger.error(f"An unexpected error occurred in get_chat_response: {e}")
-        # 將錯誤訊息修改得更清晰
-        raise RuntimeError(f"An error occurred while processing the chat response: {e}")
+        # 這裡的錯誤訊息會更明確
+        raise RuntimeError(f"Error during Gemini API call: {e}")
