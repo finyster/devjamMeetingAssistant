@@ -11,3 +11,11 @@ class YouTubeRequest(BaseModel):
     從 YouTube 下載的請求模型。
     """
     url: HttpUrl # Pydantic 會自動驗證這是否為有效的 URL
+
+
+class ChatRequest(BaseModel):
+    transcript: str
+    question: str
+
+class ChatResponse(BaseModel):
+    answer: str

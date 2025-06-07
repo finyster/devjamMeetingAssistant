@@ -82,3 +82,30 @@ async def download_and_analyze(data: schemas.YouTubeRequest):
     finally:
         if audio_path: # Check if audio_path is not None before cleanup
             services.cleanup_file(audio_path) # 刪除暫存檔案
+
+# --- Add the following new endpoints at the end of the file, before the final "if" block if you have one ---
+
+@app.get("/llm", response_class=HTMLResponse, include_in_schema=False)
+async def read_llm_page():
+    """
+    Provides the LLM chat analysis page (llm.html)
+    """
+    try:
+        with open(BASE_DIR / "static/llm.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        logger.error("llm.html not found.")
+        raise HTTPException(status_code=404, detail="llm.html not found")
+
+@app.post("/api/chat", response_model=schemas.ChatResponse)
+async def chat_with_transcript(data: schemas.ChatRequest):
+    """
+    Handles chat requests about a transcript.
+    """
+    try:
+        logger.info(f"Received chat question: {data.question}")
+        answer = await services.get_chat_response(data.transcript, data.question)
+        return schemas.ChatResponse(answer=answer)
+    except Exception as e:
+        logger.exception("An error occurred during chat processing.")
+        raise HTTPException(status_code=500, detail=str(e))
