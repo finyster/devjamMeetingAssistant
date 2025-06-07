@@ -118,3 +118,37 @@ async def chat_with_transcript(data: schemas.ChatRequest):
         return schemas.ChatResponse(answer=answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- ▼▼▼ 請加入以下這個新的 API 端點 ▼▼▼ ---
+@app.post("/api/github/issue", response_model=schemas.GitHubIssueResponse)
+async def post_github_issue(request: schemas.GitHubIssueRequest):
+    """
+    接收前端請求，建立一個 GitHub Issue
+    """
+    try:
+        issue_url = services.create_github_issue(
+            token=request.github_token,
+            repo_name=request.repo_name,
+            title=request.title,
+            body=request.body
+        )
+        return schemas.GitHubIssueResponse(issue_url=issue_url)
+    except ValueError as e:
+        # 處理 token 無效或 repo 找不到的錯誤
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        # 處理連線到 GitHub 的錯誤
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while creating GitHub issue: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+
+# --- ▼▼▼ 請加入這個新的端點來提供 Issue 頁面 ▼▼▼ ---
+@app.get("/issue", response_class=HTMLResponse, include_in_schema=False)
+async def read_issue_page():
+    """提供建立 GitHub Issue 的前端頁面"""
+    try:
+        with open(BASE_DIR / "static/issue.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="issue.html not found")

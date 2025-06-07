@@ -14,12 +14,18 @@
 </head>
 <body class="bg-gray-100">
     <div class="relative flex size-full min-h-screen flex-col bg-white group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
-        <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-gray-200 px-6 sm:px-10 py-3 fixed top-0 left-0 right-0 bg-white z-20">
-            <div class="flex items-center gap-4 text-gray-800">
-                <h2 class="text-lg font-bold">Audio Analyzer</h2>
-            </div>
-            <a href="/" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Home</a>
-        </header>
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-gray-200 px-6 sm:px-10 py-3 fixed top-0 left-0 right-0 bg-white z-20">
+    <div class="flex items-center gap-4 text-gray-800">
+        <h2 class="text-lg font-bold">Audio Analyzer</h2>
+    </div>
+
+    <nav class="flex items-center gap-6">
+        <a href="/" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Home</a>
+        <a href="/llm" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Chat Analyzer</a>
+
+        <a href="/issue" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Create Issue</a>
+    </nav>
+</header>
         
         <main class="flex flex-1 pt-16 h-screen">
             <aside class="w-full sm:w-80 h-[calc(100vh-4rem)] bg-slate-50 border-r flex flex-col">

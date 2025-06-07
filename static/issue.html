@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create GitHub Issue</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="relative flex size-full min-h-screen flex-col bg-white" style='font-family: Inter, "Noto Sans", sans-serif;'>
+        <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 px-6 sm:px-10 py-3 bg-white z-10">
+            <div class="flex items-center gap-4 text-gray-800">
+                <h2 class="text-lg font-bold">Audio Analyzer</h2>
+            </div>
+            <nav class="flex items-center gap-6">
+                <a href="/" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Home</a>
+                <a href="/llm" class="text-sm font-medium text-gray-600 hover:text-indigo-600">Chat Analyzer</a>
+            </nav>
+        </header>
+
+        <main class="flex justify-center p-4 sm:p-8">
+            <div class="w-full max-w-2xl">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Create a New GitHub Issue</h1>
+                <p class="text-gray-600 mb-8">將會議中的討論轉化為可執行的開發任務。</p>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="github-token" class="block text-sm font-medium text-gray-700">GitHub Personal Access Token</label>
+                        <input type="password" id="github-token" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="ghp_...">
+                        <p class="mt-2 text-xs text-gray-500">您的 Token 不會被儲存。請確保它有 `repo` 權限。 <a href="https://github.com/settings/tokens/new" target="_blank" class="text-indigo-600 hover:underline">如何取得？</a></p>
+                    </div>
+
+                    <div>
+                        <label for="repo-name" class="block text-sm font-medium text-gray-700">Repository Name</label>
+                        <input type="text" id="repo-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="例如：your-username/your-repo-name">
+                    </div>
+
+                    <div>
+                        <label for="issue-title" class="block text-sm font-medium text-gray-700">Issue Title</label>
+                        <input type="text" id="issue-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="請輸入 Issue 標題">
+                    </div>
+                    
+                    <div>
+                        <label for="transcript-select" class="block text-sm font-medium text-gray-700">Link to Meeting Note</label>
+                        <select id="transcript-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="">-- 請選擇一筆會議紀錄 --</option>
+                            </select>
+                    </div>
+
+                    <div>
+                        <label for="issue-description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea id="issue-description" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="詳細描述這個 Issue..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button id="create-issue-btn" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            Create Issue
+                        </button>
+                    </div>
+                </div>
+
+                <div id="feedback-message" class="mt-6"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/issue.js" defer></script>
+</body>
+</html>

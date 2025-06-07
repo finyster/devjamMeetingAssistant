@@ -1,4 +1,6 @@
 import google.generativeai as genai
+from datetime import datetime, timezone, timedelta
+from github import Github, GithubException
 from google.api_core.exceptions import GoogleAPICallError
 from dotenv import load_dotenv
 import os
@@ -166,3 +168,43 @@ async def get_chat_response(transcripts: list[str], question: str) -> str:
         logger.error(f"An unexpected error occurred in get_chat_response: {e}")
         # 這裡的錯誤訊息會更明確
         raise RuntimeError(f"Error during Gemini API call: {e}")
+    
+# --- ▼▼▼ 請在檔案最下方加入這個新函式 ▼▼▼ ---
+def create_github_issue(token: str, repo_name: str, title: str, body: str) -> str:
+    """
+    使用提供的 token 在指定的 repo 建立一個 GitHub Issue。
+
+    :param token: 使用者的 GitHub Personal Access Token.
+    :param repo_name: Repository 的名稱，格式為 "owner/repo" (例如 "my-username/my-project").
+    :param title: Issue 的標題.
+    :param body: Issue 的內容描述.
+    :return: 新建立的 Issue 的 URL.
+    """
+    try:
+        # 使用 token 初始化 Github instance
+        g = Github(token)
+        
+        # 獲取 repository 物件
+        repo = g.get_repo(repo_name)
+        
+        # 建立 issue
+        issue = repo.create_issue(
+            title=title,
+            body=body
+        )
+        
+        logger.info(f"Successfully created issue #{issue.number} in repo {repo_name}")
+        return issue.html_url # 回傳新建 issue 的網址
+
+    except GithubException as e:
+        logger.error(f"Failed to create GitHub issue in repo {repo_name}: {e}")
+        # 拋出一個更具體的錯誤訊息給後端 API
+        if e.status == 401:
+            raise ValueError("GitHub token is invalid or has insufficient permissions.")
+        elif e.status == 404:
+            raise ValueError(f"Repository '{repo_name}' not found or token does not have access.")
+        else:
+            raise ConnectionError(f"Could not connect to GitHub: {e}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred in create_github_issue: {e}")
+        raise

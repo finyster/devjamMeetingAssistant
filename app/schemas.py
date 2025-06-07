@@ -24,3 +24,13 @@ class TranscriptInfo(BaseModel):
     title: str
     content: str  # <--- 確認這一行存在
     created_at: datetime
+
+# --- ▼▼▼ 請加入以下兩個新模型 ▼▼▼ ---
+class GitHubIssueRequest(BaseModel):
+    github_token: str
+    repo_name: str # 格式: "owner/repo"
+    title: str
+    body: str
+
+class GitHubIssueResponse(BaseModel):
+    issue_url: str
