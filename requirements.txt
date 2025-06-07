@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+google-generativeai
+yt-dlp
+ffmpeg-python
+python-multipart

@@ -1,0 +1,14 @@
+# FastAPI + AssemblyAI Speech-to-Text Service
+
+本專案將本機腳本封裝成 REST 服務，支援：
+1. 上傳音檔 → 自動轉 16 kHz/mono wav → 上傳至 AssemblyAI
+2. 建立轉錄任務並立即回傳 `transcript_id`
+3. 透過 `/transcription/{transcript_id}` 端點查詢進度或結果
+
+## 使用
+
+```bash
+# 安裝依賴 & 啟動（本機）
+pip install -r requirements.txt
+export ASSEMBLYAI_API_KEY="your_key"
+uvicorn app.main:app --reload
